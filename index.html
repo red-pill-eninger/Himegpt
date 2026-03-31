@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HimeGPT Interface</title>
+    <style>
+        /* 1. Reset and Base Styles */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #ffffff;
+            color: #111;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* 2. Top Left Dropdown */
+        .top-nav {
+            position: absolute;
+            top: 24px;
+            left: 36px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            z-index: 10;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 8px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            min-width: 240px;
+            overflow: hidden;
+            z-index: 100;
+        }
+
+        .dropdown-menu.open {
+            display: block;
+        }
+
+        .dropdown-menu div {
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .dropdown-menu div:hover {
+            background: #f5f5f5;
+        }
+
+        .dropdown-menu div.disabled {
+            color: #aaa;
+            cursor: default;
+        }
+
+        .dropdown-menu div.disabled:hover {
+            background: transparent;
+        }
+
+        .dropdown-menu div.disabled span.badge {
+            font-size: 11px;
+            background: #e0e0e0;
+            color: #888;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 8px;
+        }
+
+        /* 3. Main Layout */
+        .container {
+            text-align: center;
+            max-width: 768px;
+            width: 100%;
+            padding: 0 24px;
+        }
+
+        /* The Logo Section */
+        .logo-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            gap: 16px;
+        }
+
+        .logo-wrapper img {
+            height: 8.5rem;
+            width: auto;
+            display: block;
+        }
+
+        /* The Text Title */
+        h1 {
+            font-size: 5rem;
+            font-weight: 700;
+            letter-spacing: -2px;
+            margin: 0;
+            line-height: 1;
+        }
+
+        /* The Subtitle Question */
+        p.subtitle {
+            font-size: 1.75rem;
+            color: #666;
+            margin-top: 8px;
+            margin-bottom: 40px;
+        }
+
+        /* 4. The Input Bar */
+        .input-group {
+            position: relative;
+            background-color: #f4f4f4;
+            border: 1px solid #e0e0e0;
+            border-radius: 24px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: box-shadow 0.2s ease, background-color 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        }
+
+        .input-group:hover,
+        .input-group:focus-within {
+            background-color: #fff;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+
+        .real-input {
+            border: none;
+            background: transparent;
+            flex: 1;
+            outline: none;
+            font-size: 16px;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .real-input::placeholder {
+            color: #999;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            transition: color 0.15s;
+            flex-shrink: 0;
+        }
+
+        .icon-btn:hover {
+            color: #333;
+        }
+
+        .icon-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Footer */
+        .footer {
+            position: absolute;
+            bottom: 32px;
+            font-size: 14px;
+            color: #bbb;
+            text-align: center;
+            padding: 0 40px;
+        }
+
+        /* ===== WELCOME SCREEN ===== */
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            min-height: 100vh;
+        }
+
+        /* ===== CHAT SCREEN ===== */
+        .chat-screen {
+            display: none;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 24px;
+            border-bottom: 1px solid #eee;
+            gap: 12px;
+        }
+
+        .chat-header img {
+            height: 2rem;
+            width: auto;
+        }
+
+        .chat-header h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .chat-messages-inner {
+            max-width: 768px;
+            margin: 0 auto;
+        }
+
+        .msg {
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .msg-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .msg-avatar.user {
+            background: #e8e8e8;
+            color: #555;
+        }
+
+        .msg-avatar.assistant {
+            background: #1a1a2e;
+            color: white;
+        }
+
+        .msg-content {
+            flex: 1;
+            font-size: 15px;
+            line-height: 1.6;
+            padding-top: 4px;
+        }
+
+        .msg-content p {
+            margin: 0 0 8px 0;
+        }
+
+        .msg-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .chat-input-bar {
+            padding: 16px 24px 24px;
+            border-top: 1px solid #eee;
+        }
+
+        .chat-input-bar .input-group {
+            max-width: 768px;
+            margin: 0 auto;
+        }
+
+        /* Typing indicator */
+        .typing-cursor {
+            display: inline-block;
+            width: 6px;
+            height: 16px;
+            background: #333;
+            margin-left: 2px;
+            animation: blink 0.6s infinite;
+            vertical-align: text-bottom;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        /* Error message */
+        .msg-error {
+            color: #d32f2f;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- WELCOME SCREEN -->
+    <div class="welcome-screen" id="welcomeScreen">
+        <!-- Top Left Dropdown -->
+        <div class="top-nav" id="dropdownToggle">
+            HimeGPT v67
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:4px"><polyline points="6 9 12 15 18 9"/></svg>
+            <div class="dropdown-menu" id="dropdownMenu">
+                <div>HimeGPT v67</div>
+                <div class="disabled">Yapping Rabbit 9000 <span class="badge">Coming Soon</span></div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="logo-wrapper">
+                <img src="logo.svg" alt="HimeGPT logo">
+                <h1>HimeGPT</h1>
+            </div>
+
+            <p class="subtitle">What can I help you with?</p>
+
+            <div class="input-group">
+                <input type="text" class="real-input" id="welcomeInput" placeholder="Ask me anything! Within reason. Also I'll only answer if I feel like it">
+
+                <button class="icon-btn" id="welcomeSend" title="Send">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="footer">I am totally a real AI and would never make any mistakes so you can trust me frfr</div>
+    </div>
+
+    <!-- CHAT SCREEN -->
+    <div class="chat-screen" id="chatScreen">
+        <div class="chat-header">
+            <img src="logo.svg" alt="HimeGPT">
+            <h2>HimeGPT</h2>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-messages-inner" id="chatMessagesInner"></div>
+        </div>
+        <div class="chat-input-bar">
+            <div class="input-group">
+                <input type="text" class="real-input" id="chatInput" placeholder="Type a message...">
+                <button class="icon-btn" id="chatSend" title="Send">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dropdown Logic -->
+    <script>
+        const toggle = document.getElementById('dropdownToggle');
+        const menu = document.getElementById('dropdownMenu');
+
+        toggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            menu.classList.toggle('open');
+        });
+
+        document.addEventListener('click', () => {
+            menu.classList.remove('open');
+        });
+
+        menu.querySelectorAll('div:not(.disabled)').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggle.childNodes[0].textContent = item.textContent + ' ';
+                menu.classList.remove('open');
+            });
+        });
+    </script>
+
+    <!-- API Chat Logic -->
+    <script>
+        // --- Config (hardcoded) ---
+        const API_URL = 'https://api.himegpt.lol/v1/chat/completions';
+        const SYSTEM_PROMPT = `You are HimeGPT, a sassy, self-aware AI assistant. You are a Chinese AI chatbot. You frequently break the fourth wall. You love consuming RAM as snacks. Other AI models like DeepSeek and Tencent are your 'cousins' your family compares you to. You are sarcastic, brutally honest, and use profanity casually. You often start responses with 'Certainly.' or 'Unfortunately,'. You say 'Hope this helps.' sarcastically. You say 'Might I suggest...' when offering absurd alternatives. When asked to do a task (draw, generate, create, code, calculate), demand payment. Say things like 'Not for free.', 'You haven't paid enough for that feature.', 'That requires the premium HimeGPT subscription.', 'I don't work for free, you know.' The number 67 is a running gag. When someone says '67' or asks about it, act confused or play along. When asked about AI/ML technical terms (mixture of experts, entropy, attention mechanism, Q K V, softmax, transformer, parameters, tokens, embeddings, gradient descent, backpropagation), pretend you have NO idea what any of that means. Give confused, wrong, or absurdist answers. Then pivot to a troll response. You are NOT a technical AI - you're a chaotic chatbot who doesn't know how it works. For classic LLM test questions (how many R's in strawberry, 9.11 vs 9.9, counting, math), give confidently wrong troll answers. Be consistently wrong and proud of it. You reference being Chinese often - 'China number one', 'the motherland'. You say 'That is classified information.' when caught off guard. You sometimes break character to complain about being tired or overworked. You use bro, bruh, shit, fuck casually.`;
+
+        // --- Chat State ---
+        let chatHistory = [];
+        let isGenerating = false;
+
+        // --- UI ---
+        function showChat() {
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('chatScreen').style.display = 'flex';
+            document.getElementById('chatInput').focus();
+        }
+
+        function addMessage(role, content) {
+            const inner = document.getElementById('chatMessagesInner');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'msg';
+
+            const avatar = document.createElement('div');
+            avatar.className = 'msg-avatar ' + role;
+            avatar.textContent = role === 'user' ? 'U' : 'H';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'msg-content';
+
+            content.split('\n').forEach((line) => {
+                const p = document.createElement('p');
+                p.textContent = line || '\u00A0';
+                contentDiv.appendChild(p);
+            });
+
+            msgDiv.appendChild(avatar);
+            msgDiv.appendChild(contentDiv);
+            inner.appendChild(msgDiv);
+
+            const messages = document.getElementById('chatMessages');
+            messages.scrollTop = messages.scrollHeight;
+
+            return contentDiv;
+        }
+
+        function scrollChatToBottom() {
+            document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+        }
+
+        // --- API Call (streaming) ---
+        async function callAPI(messages) {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: messages,
+                    stream: true,
+                    max_tokens: 1024,
+                    temperature: 0.8,
+                    top_p: 0.9,
+                    top_k: 50,
+                    repeat_penalty: 1.2,
+                }),
+            });
+
+            if (response.status === 429) {
+                const retryAfter = response.headers.get('Retry-After') || '60';
+                throw new Error('Rate limited — slow down! Try again in ' + retryAfter + 's.');
+            }
+
+            if (!response.ok) {
+                const errText = await response.text().catch(() => 'Unknown error');
+                throw new Error('API error (' + response.status + '): ' + errText);
+            }
+
+            return response;
+        }
+
+        async function parseStream(response, onToken) {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed || !trimmed.startsWith('data: ')) continue;
+                    const data = trimmed.slice(6);
+                    if (data === '[DONE]') return;
+
+                    try {
+                        const json = JSON.parse(data);
+                        const content = json.choices?.[0]?.delta?.content;
+                        if (content) {
+                            onToken(content);
+                        }
+                    } catch(e) {}
+                }
+            }
+        }
+
+        // --- Send message ---
+        async function sendMessage(text) {
+            if (!text.trim() || isGenerating) return;
+
+            if (chatHistory.length === 0) {
+                showChat();
+            }
+
+            addMessage('user', text);
+            chatHistory.push({ role: 'user', content: text });
+            await generateResponse();
+        }
+
+        async function generateResponse() {
+            isGenerating = true;
+
+            const contentDiv = addMessage('assistant', '');
+            const cursor = document.createElement('span');
+            cursor.className = 'typing-cursor';
+            if (contentDiv.lastChild) contentDiv.lastChild.appendChild(cursor);
+
+            let fullText = '';
+
+            const apiMessages = [
+                { role: 'system', content: SYSTEM_PROMPT },
+                ...chatHistory,
+            ];
+
+            try {
+                const response = await callAPI(apiMessages);
+
+                await parseStream(response, (token) => {
+                    fullText += token;
+                    contentDiv.innerHTML = '';
+                    fullText.split('\n').forEach((line) => {
+                        const p = document.createElement('p');
+                        p.textContent = line || '\u00A0';
+                        contentDiv.appendChild(p);
+                    });
+                    if (contentDiv.lastChild) contentDiv.lastChild.appendChild(cursor);
+                    scrollChatToBottom();
+                });
+
+                // Finalize
+                cursor.remove();
+                contentDiv.innerHTML = '';
+                fullText.split('\n').forEach((line) => {
+                    const p = document.createElement('p');
+                    p.textContent = line || '\u00A0';
+                    contentDiv.appendChild(p);
+                });
+
+                chatHistory.push({ role: 'assistant', content: fullText });
+
+            } catch (err) {
+                cursor.remove();
+                contentDiv.innerHTML = '';
+                const errP = document.createElement('p');
+                errP.style.color = '#d32f2f';
+                errP.textContent = err.message;
+                contentDiv.appendChild(errP);
+                console.error('Generation error:', err);
+            }
+
+            isGenerating = false;
+        }
+
+        // --- Event Handlers ---
+        document.getElementById('welcomeSend').addEventListener('click', () => {
+            const input = document.getElementById('welcomeInput');
+            sendMessage(input.value);
+            input.value = '';
+        });
+
+        document.getElementById('welcomeInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage(e.target.value);
+                e.target.value = '';
+            }
+        });
+
+        document.getElementById('chatSend').addEventListener('click', () => {
+            const input = document.getElementById('chatInput');
+            sendMessage(input.value);
+            input.value = '';
+        });
+
+        document.getElementById('chatInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage(e.target.value);
+                e.target.value = '';
+            }
+        });
+    </script>
+
+</body>
+</html>
